@@ -1,5 +1,7 @@
 #include "Uuid.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <random>
 #include <sstream>
 
@@ -38,12 +40,23 @@ std::string generate_uuid_v4() {
   };
   return ss.str();
 }
-}  // namespace uuid
+} // namespace uuid
 
-Uuid::Uuid(const SerializedObj& serObj) : mUuid(serObj.at("uuid")) {}
+Uuid::Uuid(const SerializedObj &serObj) : mUuid(serObj.at("uuid")) {}
 
 Uuid Uuid::generateNew() { return uuid::generate_uuid_v4(); }
-Uuid::Uuid(const std::string& rawUuid) : mUuid(rawUuid) {}
-bool Uuid::operator==(const Uuid& other) const { return other.mUuid == mUuid; }
+Uuid::Uuid(const std::string &rawUuid) : mUuid(rawUuid) {}
 
-void to_json(SerializedObj& out, const Uuid& vec) { out["uuid"] = vec.mUuid; }
+bool Uuid::operator<(const Uuid &other) const {
+
+  if (mUuid.length() == other.mUuid.length()) {
+    for (size_t i = 0; i < mUuid.length(); i++) {
+      if (mUuid[i] < other.mUuid[i])
+        return true;
+    }
+    return false;
+  }
+  return mUuid.length() < other.mUuid.length();
+}
+
+void to_json(SerializedObj &out, const Uuid &vec) { out["uuid"] = vec.mUuid; }

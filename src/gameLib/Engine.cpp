@@ -1,6 +1,7 @@
 #include "Engine.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -9,14 +10,19 @@
 #include "InputManager.h"
 #include "Timer.h"
 #include "CloseGameComponent.h"
+#include "ISceneGenerator.h"
+#include "Logging.h"
+#include "GameObject.h"
+#include "Uuid.h"
+
 std::map<std::string, std::unique_ptr<ISceneGenerator>> Engine::mScenes;
 std::optional<std::string> Engine::mNameOfSceneToLoad;
 bool Engine::mAboutToLoadScene = false;
 bool Engine::mRunning = false;
 bool Engine::mInitialized = false;
-std::vector<std::unique_ptr<GameObject>> Engine::mGameobjects;
-std::vector<std::unique_ptr<GameObject>> Engine::mGameobjectsToAdd;
-std::set<GameObject*> Engine::mGameobjectsToRemove;
+std::vector<std::shared_ptr<GameObject>> Engine::mGameobjects;
+std::vector<std::shared_ptr<GameObject>> Engine::mGameobjectsToAdd;
+std::set<Uuid> Engine::mGameobjectsToRemove;
 std::mutex Engine::mMutex;
 
 std::unique_ptr<SerializedObj> Engine::mSavedState;
@@ -50,11 +56,10 @@ void Engine::start() {
 
 void Engine::stop() { Engine::mRunning = false; }
 
-void Engine::removeGameObject(GameObject* gObj) {
+void Engine::removeGameObject(const Uuid& gObjIdentifier) {
   if(!Engine::mRunning) return;
   std::scoped_lock lock(mMutex);
-  LOG("Removing GameObject " << gObj->name() << " " << gObj);
-  Engine::mGameobjectsToRemove.insert(gObj);
+  Engine::mGameobjectsToRemove.insert(gObjIdentifier);
 }
 
 void Engine::registerScene(const std::string& name, std::unique_ptr<ISceneGenerator> scenecreator) {
@@ -161,70 +166,64 @@ void Engine::clearAllGameObjects() {
 }
 
 void Engine::putGameObjectsIntoWorld() {
-  std::vector<GameObject*> addedItems;
+  std::vector<std::shared_ptr<GameObject>> addedItems;
   {
     std::scoped_lock lock(mMutex);
-    for (auto it = mGameobjectsToAdd.begin(); it != mGameobjectsToAdd.end();
-         it++) {
-      std::unique_ptr<GameObject> newItem = std::move(*it);
-      // store away a ptr because we have to run setups afterwards
-      addedItems.emplace_back(newItem.get());
+    for(auto newGobj : mGameobjectsToAdd) {
+      addedItems.emplace_back(newGobj);
       size_t indx = 0;
-      /* Does insert sort based on renderdepth
-         to decide render order.
-         large renderdepth = rendered later = "on top" / "closer to camera"
-      */
       for (; indx != mGameobjects.size(); ++indx) {
-        if (newItem->getRenderDepth() <= mGameobjects[indx]->getRenderDepth()) {
-          mGameobjects.insert(mGameobjects.begin() + indx, std::move(newItem));
+        if (newGobj->getRenderDepth() <= mGameobjects[indx]->getRenderDepth()) {
+          mGameobjects.insert(mGameobjects.begin() + indx, newGobj);
           break;
         }
       }
       if (indx == mGameobjects.size()) {
-        mGameobjects.push_back(std::move(newItem));
+        mGameobjects.push_back(std::move(newGobj));
       }
     }
+    mGameobjectsToAdd.clear();
   }
-  mGameobjectsToAdd.clear();
   Engine::runSetups(addedItems);
 }
 void Engine::removeGameObjectFromWorld() {
-  std::vector<std::unique_ptr<GameObject>> removedObjects;
+  std::vector<std::shared_ptr<GameObject>> removedObjects;
   {
     std::scoped_lock lock(mMutex);
-    for (auto gObj_to_remove : mGameobjectsToRemove) {
-      auto gObj_in_world = mGameobjects.begin();
-      while (gObj_in_world != mGameobjects.end()) {
-        if ((gObj_in_world->get()) == (gObj_to_remove)) {
-          removedObjects.emplace_back(std::move(*gObj_in_world));
-          gObj_in_world = mGameobjects.erase(gObj_in_world);
+    for (auto identifierToRemove : mGameobjectsToRemove) {
+      auto gObjInWorld = mGameobjects.begin();
+      while (gObjInWorld != mGameobjects.end()) {
+        if (gObjInWorld->get()->getIdentifier() == identifierToRemove) {
+          removedObjects.emplace_back(std::move(*gObjInWorld));
+          gObjInWorld = mGameobjects.erase(gObjInWorld);
           continue;
         }
 
-        ++gObj_in_world;
+        ++gObjInWorld;
       }
     }
     mGameobjectsToRemove.clear();
   }
   for (auto& obj : removedObjects) {
+    ASSERT(obj.use_count() == 1, "More than one owning reference exists of gameobject at time of erase");
     obj->teardown();
   }
 }
 
-void Engine::runSetups(std::vector<GameObject*>& gameobjects) {
+void Engine::runSetups(std::vector<std::shared_ptr<GameObject>>& gameobjects) {
   for (auto& go : gameobjects) {
     go->setup();
   }
 }
 
-GameObject* Engine::getGameObject(const Uuid& identifier) {
-  for (auto& go : mGameobjects) {
+std::weak_ptr<GameObject> Engine::getGameObject(const Uuid& identifier) {
+  for (auto& gObj : mGameobjects) {
     // When a component wants to get
     // the gameobjects it's being deleted from
     // go may be null.
-    if (go && go->getIdentifier() == identifier) {
-      return go.get();
+    if (gObj && gObj->getIdentifier() == identifier) {
+      return gObj;
     }
   }
-  return nullptr;
+  return std::weak_ptr<GameObject>();
 }

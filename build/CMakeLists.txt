@@ -1,0 +1,97 @@
+
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.23)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+SET(GAME_NAME MinimalTestApplication)
+SET(LIB_NAME PotatoLib)
+PROJECT(Benis)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_PROJECT_VERSION 1)
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip
+)
+FetchContent_MakeAvailable(googletest)
+option(USE_CLANG "build application with clang" ON)
+
+# debug
+SET(GCC_COVERAGE_COMPILE_FLAGS "-std=c++20 -DDEBUG -m64 -Werror -pedantic -g -Wall -Wextra")
+SET(GCC_COVERAGE_LINK_FLAGS "-std=c++20 -DDEBUG -m64 -Werror -pedantic -g -Wall -Wextra")
+
+# fast
+# SET(GCC_COVERAGE_COMPILE_FLAGS "-std=c++2a -m64 -Ofast -Werror -pedantic -g -Wall -Wextra")
+# SET(GCC_COVERAGE_LINK_FLAGS "-std=c++2a -m64 -Ofast -Werror -pedantic -g -Wall -Wextra")
+ADD_DEFINITIONS(${GCC_COVERAGE_COMPILE_FLAGS})
+ADD_DEFINITIONS(${GCC_COVERAGE_LINK_FLAGS})
+
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/../out)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/../out)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/../out)
+SET(GAME_SRC_DIR ${PROJECT_BINARY_DIR}/../src/testGame)
+SET(LIB_SRC_DIR ${PROJECT_BINARY_DIR}/../src/gameLib)
+
+SET(TEST_SRC_DIR ${PROJECT_BINARY_DIR}/../tests/)
+SET(TEST_OUTPUT_DIR ${PROJECT_BINARY_DIR}/../testBin/)
+
+INCLUDE(FindPkgConfig)
+PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2)
+PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image>=2.0.0)
+PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf>=2.0.0)
+
+MACRO(HEADER_DIRECTORIES return_list)
+    FILE(GLOB_RECURSE new_list *.h)
+    SET(dir_list "")
+
+    FOREACH(file_path ${new_list})
+        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
+        SET(dir_list ${dir_list} ${dir_path})
+    ENDFOREACH()
+
+    LIST(REMOVE_DUPLICATES dir_list)
+    SET(${return_list} ${dir_list})
+ENDMACRO()
+
+# Prepare application binary
+FILE(GLOB GAME_SRC_FILES
+    ${GAME_SRC_DIR}/*.h
+    ${GAME_SRC_DIR}/*.cpp
+)
+
+FILE(GLOB_RECURSE LIB_SRC_FILES CONFIGURE_DEPENDS
+    ${LIB_SRC_DIR}/*.cpp
+)
+
+FILE(GLOB_RECURSE LIB_HDR_FILES CONFIGURE_DEPENDS LIST_DIRECTORIES true
+    ${LIB_SRC_DIR} *.h
+)
+
+add_library(${LIB_NAME} ${LIB_SRC_FILES})
+target_include_directories(${LIB_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} ${LIB_HDR_FILES})
+TARGET_LINK_LIBRARIES(${LIB_NAME} stdc++ m dl pthread ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${SDL2TTF_LIBRARIES})
+
+ADD_EXECUTABLE(${GAME_NAME} ${GAME_SRC_FILES})
+target_include_directories(${GAME_NAME} PRIVATE ${LIB_HDR_FILES} ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(${GAME_NAME} PRIVATE ${LIB_NAME})
+
+# Prepare testing
+ENABLE_TESTING()
+FIND_PACKAGE(GTest REQUIRED)
+INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS})
+FILE(GLOB_RECURSE TEST_SRCS CONFIGURE_DEPENDS ${TEST_SRC_DIR}/*.cpp)
+
+FOREACH(testSrc ${TEST_SRCS})
+    GET_FILENAME_COMPONENT(testName ${testSrc} NAME_WE)
+
+    ADD_EXECUTABLE(${testName} ${testSrc})
+    TARGET_LINK_LIBRARIES(${testName} PRIVATE stdc++ gtest gtest_main pthread ${LIB_NAME})
+    target_include_directories(${testName} PRIVATE ${LIB_HDR_FILES} ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS})
+
+    SET_TARGET_PROPERTIES(${testName} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${TEST_OUTPUT_DIR})
+
+    ADD_TEST(NAME ${testName}
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+        COMMAND ${TEST_OUTPUT_DIR}${testName})
+ENDFOREACH(testSrc)

@@ -18,13 +18,8 @@ class GameObject {
   virtual ~GameObject();
   GameObject(const GameObject&) = delete;
   GameObject& operator=(const GameObject&) = delete;
-
-  /*-------------------------------------------------------
-  Get/Set if the gameobject is enabled.
-  ---------------------------------------------------------
-  @return reference to if the variable is enabled.
-  ---------------------------------------------------------*/
-  bool& enabled();
+  bool enabled();
+  void setEnabled(bool enabled);
 
   template <typename T, class... Args>
   T& addComponent(Args&&... args) {
@@ -43,7 +38,7 @@ class GameObject {
   @return pointer to component. nullptr if no component found.
   ---------------------------------------------------------*/
   template <class componentType>
-  componentType* getComponent();
+  std::weak_ptr<componentType> getComponent();
 
   template <class componentType>
   bool hasComponent();
@@ -103,24 +98,23 @@ class GameObject {
   std::string mName{"NoName"};
   const Uuid mIdentifier;
 
-  std::vector<std::unique_ptr<Component>> mComponents;
+  std::vector<std::shared_ptr<Component>> mComponents;
 
   std::mutex mMutex;
 };
 
 template <class componentType>
-componentType* GameObject::getComponent() {
+std::weak_ptr<componentType> GameObject::getComponent() {
   for (const auto& item : mComponents) {
-    auto raw = item.get();
-    auto casted = dynamic_cast<componentType*>(raw);
+    auto casted = std::dynamic_pointer_cast<componentType>(item);
     if (casted) {
-      return casted;
+      return std::weak_ptr<componentType>(casted);
     }
   }
-  return nullptr;
+  return std::weak_ptr<componentType>();
 }
 
 template <class componentType>
 bool GameObject::hasComponent() {
-  return getComponent<componentType>() != nullptr;
+  return getComponent<componentType>();
 }

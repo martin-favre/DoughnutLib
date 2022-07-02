@@ -8,7 +8,8 @@ GameObject::~GameObject() {
   LOG("Deleting GameObject " << mName << " " << this);
 }
 
-bool& GameObject::enabled() { return mEnabled; }
+bool GameObject::enabled() { return mEnabled; }
+void GameObject::setEnabled(bool enabled) { mEnabled = enabled; }
 
 void GameObject::setup() {
   for (auto& component : mComponents) {
@@ -59,7 +60,7 @@ double GameObject::getRotation() const { return mRotation; }
 
 const Uuid& GameObject::getIdentifier() const { return mIdentifier; }
 
-void GameObject::destroy() { Engine::removeGameObject(this); }
+void GameObject::destroy() { Engine::removeGameObject(mIdentifier); }
 
 void GameObject::setName(const std::string& name) { mName = name; }
 

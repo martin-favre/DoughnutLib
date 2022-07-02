@@ -2,6 +2,7 @@
 #include "Component.h"
 #include "Serializer.h"
 #include "Timer.h"
+#include <memory>
 class TextComponent;
 
 class FpsCounter : public Component {
@@ -17,5 +18,5 @@ class FpsCounter : public Component {
   Timer mUpdateTimer;
   Timer mRenderTimer;
   int64_t mMsPerRender{0};
-  TextComponent* mText{nullptr};
+  std::weak_ptr<TextComponent> mText;
 };

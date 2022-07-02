@@ -8,7 +8,8 @@ class Uuid {
   Uuid(const Uuid&) = default;
   Uuid(const SerializedObj& rawUuid);
   static Uuid generateNew();
-  bool operator==(const Uuid& other) const;
+  bool operator==(const Uuid&) const = default;
+  bool operator<(const Uuid&) const;
   friend void to_json(SerializedObj& out, const Uuid& vec);
 
  private:

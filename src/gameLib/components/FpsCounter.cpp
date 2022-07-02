@@ -20,11 +20,11 @@ SerializedObj FpsCounter::serialize() const {
 void FpsCounter::setup() { mText = owner().getComponent<TextComponent>(); }
 std::string FpsCounter::getTypeString() { return "FpsCounter"; }
 void FpsCounter::update() {
-  if (mText) {
+  if (auto ptr = mText.lock()) {
     auto ms = mUpdateTimer.getElapsedMilliseconds();
     std::string updateText = std::to_string(ms);
     std::string renderText = std::to_string(mMsPerRender);
-    mText->setText(updateText + "ms/update\n" + renderText + "ms/render\n");
+    ptr->setText(updateText + "ms/update\n" + renderText + "ms/render\n");
     mUpdateTimer.start();
   }
 }

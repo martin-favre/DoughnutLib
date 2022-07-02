@@ -11,7 +11,8 @@ CTestTestfile.cmake
 _deps
 .cache
 .cmake
-build
+build/bin
+build/lib
 out
 testBin
 *.log
