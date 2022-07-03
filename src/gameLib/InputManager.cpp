@@ -9,7 +9,7 @@ std::string InputManager::mTextInput = "";
 bool InputManager::mKeyStates[NOF_SDL_SCANCODES_BUFFER] = {0};
 bool InputManager::mMouseStates[NOF_SDL_SCANCODES_BUFFER] = {0};
 SDL_Event InputManager::mSdlEvent;
-std::mutex InputManager::mMutex;
+
 std::list<QueueHandle*> InputManager::mQueueHandles;
 
 QueueHandle::QueueHandle() { InputManager::registerQueues(this); }
@@ -27,45 +27,37 @@ void InputManager::initialize() {
 }
 
 void InputManager::registerQueues(QueueHandle* handle) {
-  std::scoped_lock lock(mMutex);
   mQueueHandles.emplace_back(handle);
 }
 void InputManager::unRegisterQueues(QueueHandle* handle) {
-  std::scoped_lock lock(mMutex);
   mQueueHandles.erase(
       std::remove(mQueueHandles.begin(), mQueueHandles.end(), handle),
       mQueueHandles.end());
 }
 
 bool InputManager::hasMouseEvents(const QueueHandle& handle) {
-  std::scoped_lock lock(mMutex);
   return !handle.mMouseEvents.empty();
 }
 bool InputManager::hasKeyEvents(const QueueHandle& handle) {
-  std::scoped_lock lock(mMutex);
   return !handle.mKeyEvents.empty();
 }
 MouseEvent InputManager::dequeueMouseEvent(QueueHandle& handle) {
-  std::scoped_lock lock(mMutex);
   MouseEvent out = handle.mMouseEvents.front();
   handle.mMouseEvents.pop();
   return out;
 }
 KeyEvent InputManager::dequeueKeyEvent(QueueHandle& handle) {
-  std::scoped_lock lock(mMutex);
   KeyEvent out = handle.mKeyEvents.front();
   handle.mKeyEvents.pop();
   return out;
 }
 
 void InputManager::clearQueues(QueueHandle& handle) {
-  std::scoped_lock lock(mMutex);
   while (!handle.mMouseEvents.empty()) handle.mMouseEvents.pop();
   while (!handle.mKeyEvents.empty()) handle.mKeyEvents.pop();
 }
 
 void InputManager::readInputs() {
-  std::scoped_lock lock(mMutex);
   InputManager::resetTextInput();
 
   while (SDL_PollEvent(&InputManager::mSdlEvent) != 0) {
@@ -103,12 +95,10 @@ void InputManager::readInputs() {
 }
 
 bool InputManager::getKey(int key) {
-  std::scoped_lock lock(mMutex);
   return mKeyStates[key];
 }
 
 bool InputManager::getMouse(int mousebtn) {
-  std::scoped_lock lock(mMutex);
   return InputManager::mMouseStates[mousebtn];
 }
 

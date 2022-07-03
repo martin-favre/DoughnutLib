@@ -7,7 +7,6 @@
 #include <queue>
 #include <set>
 #include <vector>
-#include <mutex>
 
 class GameObject;
 class ISceneGenerator;
@@ -51,7 +50,6 @@ class Engine {
   static std::vector<std::shared_ptr<GameObject>> mGameobjects;
   static std::vector<std::shared_ptr<GameObject>> mGameobjectsToAdd;
   static std::set<Uuid> mGameobjectsToRemove;
-  static std::mutex mMutex;
   static std::unique_ptr<SerializedObj> mSavedState;
   static std::unique_ptr<SerializedObj> mLoadState;
 };

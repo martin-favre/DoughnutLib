@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 #include "Component.h"
-#include <mutex>
 #include "Font.h"
 
 class Sprite;
@@ -35,5 +34,4 @@ class TextComponent : public Component {
   bool mCentered{false};
   SDL_RendererFlip mFlip{SDL_FLIP_NONE};
   SDL_Color mColor{255, 255, 255, 255};
-  std::mutex mMutex;
 };

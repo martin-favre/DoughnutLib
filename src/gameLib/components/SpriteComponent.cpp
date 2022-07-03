@@ -35,10 +35,9 @@ void SpriteComponent::setup() {
   //     SpriteLoader::loadSpriteByIndex(mSpriteSheetInfo, mSpriteSheetIndex);
 }
 
-void SpriteComponent::teardown() { std::scoped_lock lock(mMutex); }
+void SpriteComponent::teardown() {}
 
 void SpriteComponent::render() {
-  std::scoped_lock lock(mMutex);
   if (mSprite) {
     Vector3DInt pos{owner().getPosition()};
     GraphicsManager::renderTexture(*mSprite, pos, owner().getScale(),

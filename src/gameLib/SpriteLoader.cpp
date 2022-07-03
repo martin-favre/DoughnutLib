@@ -10,7 +10,6 @@ std::map<std::string, SDL_Texture *> SpriteLoader::mTextures;
 std::map<std::pair<std::string, int>, TTF_Font *> SpriteLoader::mFonts;
 
 SDL_Texture *SpriteLoader::convertSurfaceToTexture(SDL_Surface *newSurf) {
-  std::scoped_lock lock(GraphicsManager::mMutex);
   SDL_Texture *out =
       SDL_CreateTextureFromSurface(GraphicsManager::mMainRenderer, newSurf);
 

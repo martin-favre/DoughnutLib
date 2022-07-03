@@ -24,7 +24,6 @@ SerializedObj TextComponent::serialize() const {
 }
 
 void TextComponent::setFontSize(int size) {
-  std::scoped_lock lock(mMutex);
   mSize = size;
   mFont = SpriteLoader::loadFont(mFontSource, size);
 }
@@ -33,7 +32,6 @@ std::string TextComponent::getText() { return mText; }
 
 void TextComponent::setText(const std::string &text) {
   if (text != mText) {
-    std::scoped_lock lock(mMutex);
     size_t lastLinebreak = 0;
     size_t indx = 0;
     mRequestedSprites.clear();
@@ -51,16 +49,14 @@ void TextComponent::setText(const std::string &text) {
 }
 
 void TextComponent::setColor(const SDL_Color &color) {
-  std::scoped_lock lock(mMutex);
   mColor = color;
 }
 
-void TextComponent::teardown() { std::scoped_lock lock(mMutex); }
+void TextComponent::teardown() {}
 
 void TextComponent::render() {
   ASSERT(mFont.get(), "Received null Font ptr");
   ASSERT(mFont->getSdlFont(), "Received null TTF_Font ptr");
-  std::scoped_lock lock(mMutex);
   if (mRequestedSprites.size()) {
     mSprites.clear();
     for (auto &sprite : mRequestedSprites) {

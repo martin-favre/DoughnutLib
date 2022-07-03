@@ -3,7 +3,6 @@
 #include <SDL.h>
 
 #include <list>
-#include <mutex>
 #include <queue>
 #include <string>
 
@@ -106,6 +105,5 @@ class InputManager {
   static SDL_Event mSdlEvent;
   static bool mKeyStates[NOF_SDL_SCANCODES_BUFFER];
   static bool mMouseStates[NOF_SDL_SCANCODES_BUFFER];
-  static std::mutex mMutex;
   static std::list<QueueHandle*> mQueueHandles;
 };

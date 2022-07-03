@@ -7,7 +7,6 @@
 #include "Component.h"
 #include "SpriteSheetInfo.h"
 
-#include <mutex>
 class Rect;
 class Sprite;
 class GameObject;
@@ -20,7 +19,6 @@ class SpriteComponent : public Component {
   void render() override;
   void teardown() override;
   void setCameraAsReference(bool useCamera) {
-    std::scoped_lock lock(mMutex);
     mCameraAsReference = useCamera;
   }
 
@@ -35,5 +33,4 @@ class SpriteComponent : public Component {
   const bool mCentered{false};
   std::unique_ptr<Sprite> mSprite;
   const SDL_RendererFlip mFlip{SDL_FLIP_NONE};
-  std::mutex mMutex;
 };

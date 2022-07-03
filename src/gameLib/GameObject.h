@@ -2,7 +2,6 @@
 
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -99,8 +98,6 @@ class GameObject {
   const Uuid mIdentifier;
 
   std::vector<std::shared_ptr<Component>> mComponents;
-
-  std::mutex mMutex;
 };
 
 template <class componentType>
